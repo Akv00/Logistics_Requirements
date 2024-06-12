@@ -32,7 +32,7 @@ def update_configuration(configuration: schemas.ConfigurationUpdate, country_cod
     try:
         db_configuration = crud.get_configuration(db, country_code)
         if not db_configuration:
-            raise HTTPException(status_code=404, detail="Configuration not found")
+            raise ConfigurationNotFoundError(country_code)
         return crud.update_configuration(db, country_code, configuration)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
