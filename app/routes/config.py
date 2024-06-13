@@ -1,19 +1,25 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import schemas, crud, database
-from ..exceptions import ConfigurationNotFoundError
+from ..exceptions import ConfigurationAlreadyExists, ConfigurationNotFoundError
+
+
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 @router.post("/create_configuration", response_model=schemas.Configuration)
 def create_configuration(configuration: schemas.ConfigurationCreate, db: Session = Depends(database.get_db)):
     try:
         db_configuration = crud.get_configuration(db, configuration.country_code)
         if db_configuration:
-            raise HTTPException(status_code=400, detail="Configuration already exists")
+            raise ConfigurationAlreadyExists(country_code=configuration.country_code)
         return crud.create_configuration(db, configuration)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error creating configuration: {e}", exc_info=True)
+        raise HTTPException(status_code=500,  detail=str(e))
     # db_configuration = crud.get_configuration(db, configuration.country_code)
     # if db_configuration:
     #     raise HTTPException(status_code=400, detail="Configuration already exists")
@@ -46,7 +52,7 @@ def delete_configuration(country_code: str, db: Session = Depends(database.get_d
     try:
         db_configuration = crud.get_configuration(db, country_code)
         if not db_configuration:
-            raise HTTPException(status_code=404, detail="Configuration not found")
+            raise ConfigurationNotFoundError(country_code)
         return crud.delete_configuration(db, country_code)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
